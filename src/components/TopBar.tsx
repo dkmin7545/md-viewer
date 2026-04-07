@@ -73,7 +73,8 @@ export function TopBar() {
       <input
         ref={fileRef}
         type="file"
-        accept=".md,.markdown,text/markdown"
+        // iOS Safari는 text/markdown을 모르고 사진 피커로 폴백하므로 accept를 비워
+        // 시스템 "파일" 피커가 뜨도록 한다. 비-md 파일은 useFiles에서 걸러진다.
         multiple
         hidden
         onChange={(e) => loadFromInput(e.target.files)}
