@@ -1,9 +1,11 @@
 import { create } from 'zustand'
+import { get as idbGet, set as idbSet } from 'idb-keyval'
 
 export type LoadedFile = {
   id: string
   name: string
   content: string
+  lastOpened?: number
 }
 
 export type Theme = 'light' | 'dark'
@@ -11,6 +13,38 @@ export type Theme = 'light' | 'dark'
 const LS_FONT = 'mdv:fontSize'
 const LS_THEME = 'mdv:theme'
 const LS_RECENT = 'mdv:recent'
+const IDB_SESSION = 'mdv:session'
+
+// 세션 한도: 파일 50개 / 총 5MB
+const SESSION_MAX_FILES = 50
+const SESSION_MAX_BYTES = 5 * 1024 * 1024
+
+type SessionSnapshot = { files: LoadedFile[]; activeId: string | null }
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+function scheduleSaveSession(snapshot: SessionSnapshot) {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    void idbSet(IDB_SESSION, snapshot).catch(() => {})
+  }, 200)
+}
+
+function trimToLimits(files: LoadedFile[]): LoadedFile[] {
+  // lastOpened 내림차순으로 정렬, 한도 초과분 드롭
+  const sorted = [...files].sort(
+    (a, b) => (b.lastOpened ?? 0) - (a.lastOpened ?? 0),
+  )
+  const kept: LoadedFile[] = []
+  let bytes = 0
+  for (const f of sorted) {
+    const size = f.content.length * 2 // UTF-16 추정
+    if (kept.length >= SESSION_MAX_FILES) break
+    if (bytes + size > SESSION_MAX_BYTES) break
+    kept.push(f)
+    bytes += size
+  }
+  return kept
+}
 
 const FONT_MIN = 14
 const FONT_MAX = 28
@@ -49,6 +83,8 @@ type ViewerState = {
   tocPanelOpen: boolean
   immersive: boolean
   recent: RecentFile[]
+  hydrated: boolean
+  hydrateSession: () => Promise<void>
   addFiles: (files: LoadedFile[]) => void
   setActive: (id: string) => void
   closeFile: (id: string) => void
@@ -68,42 +104,78 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   tocPanelOpen: false,
   immersive: false,
   recent: loadRecent(),
+  hydrated: false,
+
+  hydrateSession: async () => {
+    if (get().hydrated) return
+    try {
+      const snap = (await idbGet(IDB_SESSION)) as SessionSnapshot | undefined
+      if (snap && Array.isArray(snap.files) && snap.files.length > 0) {
+        const files = trimToLimits(snap.files)
+        const activeId =
+          snap.activeId && files.find((f) => f.id === snap.activeId)
+            ? snap.activeId
+            : files[0]?.id ?? null
+        set({ files, activeId, hydrated: true })
+        return
+      }
+    } catch {
+      /* ignore */
+    }
+    set({ hydrated: true })
+  },
 
   addFiles: (incoming) =>
     set((s) => {
+      const now = Date.now()
+      const stamped = incoming.map((f) => ({ ...f, lastOpened: now }))
       const merged = [...s.files]
-      for (const f of incoming) {
+      for (const f of stamped) {
         const idx = merged.findIndex((m) => m.name === f.name)
         if (idx >= 0) merged[idx] = f
         else merged.push(f)
       }
+      const trimmed = trimToLimits(merged)
       // 파일 패널은 라이브러리 역할 — 폴더의 모든 .md를 수용한다.
-      // 스펙 §2-4의 "탭 최대 10개"는 동시 렌더링을 의미하나, 본 구현은
-      // 한 번에 1개만 렌더링하므로 탭 상한이 사용성 제약이 될 뿐이라 제거한다.
+      // 한도(50개/5MB)를 넘으면 lastOpened 기준 오래된 항목부터 드롭.
 
       // 최근 파일 갱신
-      const now = Date.now()
       const recentMap = new Map(s.recent.map((r) => [r.name, r]))
-      for (const f of incoming) recentMap.set(f.name, { name: f.name, lastOpened: now })
+      for (const f of stamped) recentMap.set(f.name, { name: f.name, lastOpened: now })
       const recent = Array.from(recentMap.values())
         .sort((a, b) => b.lastOpened - a.lastOpened)
         .slice(0, 5)
       localStorage.setItem(LS_RECENT, JSON.stringify(recent))
 
+      const activeId =
+        s.activeId && trimmed.find((f) => f.id === s.activeId)
+          ? s.activeId
+          : stamped[0]?.id ?? trimmed[0]?.id ?? null
+
+      scheduleSaveSession({ files: trimmed, activeId })
+
       return {
-        files: merged,
-        activeId: s.activeId ?? incoming[0]?.id ?? null,
+        files: trimmed,
+        activeId,
         recent,
       }
     }),
 
-  setActive: (id) => set({ activeId: id, filePanelOpen: false, tocPanelOpen: false }),
+  setActive: (id) =>
+    set((s) => {
+      const files = s.files.map((f) =>
+        f.id === id ? { ...f, lastOpened: Date.now() } : f,
+      )
+      scheduleSaveSession({ files, activeId: id })
+      return { files, activeId: id, filePanelOpen: false, tocPanelOpen: false }
+    }),
 
   closeFile: (id) =>
     set((s) => {
       const files = s.files.filter((f) => f.id !== id)
       const activeId =
         s.activeId === id ? files[files.length - 1]?.id ?? null : s.activeId
+      scheduleSaveSession({ files, activeId })
       return { files, activeId }
     }),
 

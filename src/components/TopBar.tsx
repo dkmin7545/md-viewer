@@ -1,8 +1,13 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useFiles } from '../hooks/useFiles'
 import { useViewerStore } from '../store/viewerStore'
+import { SendModal } from './SendModal'
+import { JoinPrompt } from './JoinPrompt'
 
 export function TopBar() {
+  const [sendOpen, setSendOpen] = useState(false)
+  const [joinOpen, setJoinOpen] = useState(false)
+  const filesCount = useViewerStore((s) => s.files.length)
   const fileRef = useRef<HTMLInputElement>(null)
   const folderRef = useRef<HTMLInputElement>(null)
   const { loadFromInput } = useFiles()
@@ -18,13 +23,14 @@ export function TopBar() {
   const btn: React.CSSProperties = {
     minHeight: 44,
     minWidth: 44,
-    padding: '0 12px',
+    padding: '0 8px',
     border: '1px solid var(--mdv-border)',
     borderRadius: 8,
     background: 'var(--mdv-surface)',
     color: 'var(--mdv-fg)',
     fontSize: 15,
     cursor: 'pointer',
+    flexShrink: 0,
   }
 
   return (
@@ -32,9 +38,11 @@ export function TopBar() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '8px 12px calc(8px)',
+        gap: 6,
+        padding: '8px 8px calc(8px)',
         paddingTop: 'calc(8px + env(safe-area-inset-top))',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
         borderBottom: '1px solid var(--mdv-border)',
         background: 'var(--mdv-bg)',
         position: 'sticky',
@@ -47,19 +55,52 @@ export function TopBar() {
       </button>
       <button style={btn} onClick={() => fileRef.current?.click()}>파일</button>
       <button style={btn} onClick={() => folderRef.current?.click()}>폴더</button>
+      <button
+        style={{ ...btn, opacity: filesCount === 0 ? 0.4 : 1 }}
+        disabled={filesCount === 0}
+        onClick={() => setSendOpen(true)}
+        aria-label="모바일로 보내기"
+        title="모바일로 보내기"
+      >
+        📤
+      </button>
+      <button
+        style={btn}
+        onClick={() => setJoinOpen(true)}
+        aria-label="코드로 받기"
+        title="코드로 받기"
+      >
+        📥
+      </button>
       <div
         style={{
           flex: 1,
+          minWidth: 0,
           textAlign: 'center',
-          fontSize: 15,
-          fontWeight: 600,
           color: 'var(--mdv-fg)',
           overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          lineHeight: 1.1,
         }}
       >
-        {activeName}
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+            maxWidth: '100%',
+          }}
+        >
+          {activeName}
+        </div>
+        <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>
+          v{__APP_VERSION__} · {__BUILD_DATE__}
+        </div>
       </div>
       <button style={btn} onClick={toggleTheme} aria-label="테마 전환">
         {theme === 'dark' ? '☀️' : '🌙'}
@@ -89,6 +130,8 @@ export function TopBar() {
         multiple
         onChange={(e) => loadFromInput(e.target.files)}
       />
+      {sendOpen && <SendModal onClose={() => setSendOpen(false)} />}
+      {joinOpen && <JoinPrompt onClose={() => setJoinOpen(false)} />}
     </header>
   )
 }

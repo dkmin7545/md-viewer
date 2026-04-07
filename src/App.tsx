@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TopBar } from './components/TopBar'
 import { MarkdownView } from './components/MarkdownView'
 import { FontSizeBar } from './components/FontSizeBar'
 import { FilePanel } from './components/FilePanel'
 import { TocPanel } from './components/TocPanel'
 import { ProgressBar } from './components/ProgressBar'
+import { JoinPrompt } from './components/JoinPrompt'
 import { useFiles } from './hooks/useFiles'
 import { useViewerStore } from './store/viewerStore'
 
@@ -15,7 +16,21 @@ export default function App() {
   const activeId = useViewerStore((s) => s.activeId)
   const immersive = useViewerStore((s) => s.immersive)
   const toggleImmersive = useViewerStore((s) => s.toggleImmersive)
+  const hydrateSession = useViewerStore((s) => s.hydrateSession)
   const mainRef = useRef<HTMLElement>(null)
+  const [joinCode, setJoinCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    void hydrateSession()
+    const params = new URLSearchParams(location.search)
+    const code = params.get('join')
+    if (code) {
+      setJoinCode(code)
+      params.delete('join')
+      const qs = params.toString()
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''))
+    }
+  }, [hydrateSession])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--md-font-size', `${fontSize}px`)
@@ -73,6 +88,9 @@ export default function App() {
       )}
       <FilePanel />
       <TocPanel />
+      {joinCode !== null && (
+        <JoinPrompt initialCode={joinCode} onClose={() => setJoinCode(null)} />
+      )}
     </div>
   )
 }
