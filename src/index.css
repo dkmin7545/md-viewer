@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* spec §2-3 핵심 가치 — 절대 줄이지 말 것 */
+  --md-font-size: 18px;
+
+  --mdv-bg: #ffffff;
+  --mdv-surface: #fafafa;
+  --mdv-fg: #1a1a1a;
+  --mdv-muted: #777;
+  --mdv-border: #e3e3e3;
+  --mdv-accent: #0969da;
+  --mdv-accent-soft: #ddebff;
+  --mdv-code-bg: #f1f1f1;
+  --mdv-pre-bg: #f6f8fa;
+  --mdv-quote-border: #d0d0d0;
+  --mdv-quote-fg: #555;
+}
+
+html[data-theme='dark'] {
+  --mdv-bg: #15171a;
+  --mdv-surface: #1c1f23;
+  --mdv-fg: #e8e8e8;
+  --mdv-muted: #8a8f97;
+  --mdv-border: #2d3138;
+  --mdv-accent: #4a9eff;
+  --mdv-accent-soft: #1f3147;
+  --mdv-code-bg: #24272d;
+  --mdv-pre-bg: #1a1d21;
+  --mdv-quote-border: #3a3f47;
+  --mdv-quote-fg: #b0b5bd;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo',
+    'Noto Sans KR', sans-serif;
+  background: var(--mdv-bg);
+  color: var(--mdv-fg);
+}
+
+.markdown-body {
+  font-size: var(--md-font-size);
+  line-height: 1.7;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 4rem;
+  word-break: break-word;
+  color: var(--mdv-fg);
+}
+
+.markdown-body h1 { font-size: 1.9em; font-weight: 700; margin: 1.4em 0 0.6em; }
+.markdown-body h2 { font-size: 1.55em; font-weight: 700; margin: 1.3em 0 0.5em; }
+.markdown-body h3 { font-size: 1.3em; font-weight: 600; margin: 1.2em 0 0.4em; }
+.markdown-body h4 { font-size: 1.1em; font-weight: 600; margin: 1.1em 0 0.4em; }
+.markdown-body p { margin: 0.7em 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: 0.7em 0; }
+.markdown-body li { margin: 0.25em 0; }
+.markdown-body blockquote {
+  border-left: 4px solid var(--mdv-quote-border);
+  padding: 0.2em 0.9em;
+  color: var(--mdv-quote-fg);
+  margin: 0.9em 0;
+}
+.markdown-body code {
+  background: var(--mdv-code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+.markdown-body pre {
+  background: var(--mdv-pre-bg);
+  padding: 0.9em;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.9em 0;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid var(--mdv-border);
+  padding: 0.45em 0.7em;
+  text-align: left;
+}
+.markdown-body img { max-width: 100%; height: auto; }
+.markdown-body a { color: var(--mdv-accent); text-decoration: underline; }
