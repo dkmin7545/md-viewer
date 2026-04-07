@@ -9,6 +9,7 @@ export function FilePanel() {
   const activeId = useViewerStore((s) => s.activeId)
   const setActive = useViewerStore((s) => s.setActive)
   const closeFile = useViewerStore((s) => s.closeFile)
+  const clearAll = useViewerStore((s) => s.clearAll)
   const recent = useViewerStore((s) => s.recent)
 
   const [q, setQ] = useState('')
@@ -60,6 +61,29 @@ export function FilePanel() {
           }}
         >
           <strong style={{ flex: 1, fontSize: 16 }}>파일</strong>
+          <button
+            onClick={() => {
+              if (files.length === 0) return
+              if (confirm(`열린 파일 ${files.length}개를 모두 삭제하시겠습니까?`)) {
+                clearAll()
+              }
+            }}
+            disabled={files.length === 0}
+            style={{
+              minHeight: 44,
+              padding: '0 10px',
+              border: '1px solid var(--mdv-border)',
+              borderRadius: 8,
+              background: 'var(--mdv-bg)',
+              color: 'var(--mdv-fg)',
+              cursor: files.length === 0 ? 'default' : 'pointer',
+              opacity: files.length === 0 ? 0.4 : 1,
+              fontSize: 13,
+            }}
+            aria-label="전체 삭제"
+          >
+            전체삭제
+          </button>
           <button
             onClick={() => setOpen(false)}
             style={{

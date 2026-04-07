@@ -88,6 +88,7 @@ type ViewerState = {
   addFiles: (files: LoadedFile[]) => void
   setActive: (id: string) => void
   closeFile: (id: string) => void
+  clearAll: () => void
   setFontSize: (n: number) => void
   toggleTheme: () => void
   setFilePanelOpen: (open: boolean) => void
@@ -178,6 +179,11 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
       scheduleSaveSession({ files, activeId })
       return { files, activeId }
     }),
+
+  clearAll: () => {
+    scheduleSaveSession({ files: [], activeId: null })
+    set({ files: [], activeId: null, filePanelOpen: false })
+  },
 
   setFontSize: (n) => {
     const clamped = Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n / 2) * 2))
