@@ -58,7 +58,17 @@ export default function App() {
       onDrop={loadFromDrop}
     >
       {!immersive && <TopBar />}
-      <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <main
+        ref={mainRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <ProgressBar scrollRef={mainRef} />
         <ContentView />
       </main>

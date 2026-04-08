@@ -7,7 +7,7 @@ export function HtmlView({ file }: Props) {
   const [showSource, setShowSource] = useState(false)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div
         style={{
           display: 'flex',

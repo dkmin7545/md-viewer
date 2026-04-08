@@ -34,7 +34,7 @@ export function JsxView({ file }: Props) {
   const src = `${import.meta.env.BASE_URL}jsx-renderer/index.html?embed=1`
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div
         style={{
           display: 'flex',
