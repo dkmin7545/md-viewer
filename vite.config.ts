@@ -38,6 +38,9 @@ export default defineConfig({
       workbox: {
         // 한 파일이 5MB를 넘을 수 있으므로 한도 상향
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // jsx-renderer는 별도 정적 페이지이므로 SPA shell로 폴백되면 안 됨
+        // (그러면 iframe 안에 md viewer가 또 로드됨)
+        navigateFallbackDenylist: [/^\/md-viewer\/jsx-renderer\//],
       },
     }),
   ],
