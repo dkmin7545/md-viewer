@@ -32,3 +32,6 @@ Bootstrap commands are in spec §7. Once scaffolded, expected scripts: `npm run 
 - Images: URL only, local paths are intentionally out of scope.
 - Touch targets ≥ 44×44px (spec §8).
 - `[[wikilink]]` and Mermaid are explicitly deferred — do not implement without asking.
+
+## 참고 자산
+- JSX 렌더러 구현 참고: /Users/dennis/Documents/Code by Claude/jsx rendering/jsx-renderer/index.html

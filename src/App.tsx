@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { TopBar } from './components/TopBar'
-import { MarkdownView } from './components/MarkdownView'
+import { ContentView } from './components/ContentView'
 import { FontSizeBar } from './components/FontSizeBar'
 import { FilePanel } from './components/FilePanel'
 import { TocPanel } from './components/TocPanel'
@@ -60,7 +60,7 @@ export default function App() {
       {!immersive && <TopBar />}
       <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         <ProgressBar scrollRef={mainRef} />
-        <MarkdownView />
+        <ContentView />
       </main>
       {!immersive && <FontSizeBar />}
       {immersive && (

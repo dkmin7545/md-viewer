@@ -1,16 +1,16 @@
 import { useCallback } from 'react'
-import { useViewerStore, type LoadedFile } from '../store/viewerStore'
-
-const isMarkdown = (f: File) =>
-  f.name.toLowerCase().endsWith('.md') || f.name.toLowerCase().endsWith('.markdown')
+import { useViewerStore, detectKind, type LoadedFile } from '../store/viewerStore'
 
 async function readFiles(fileList: FileList | File[]): Promise<LoadedFile[]> {
-  const arr = Array.from(fileList).filter(isMarkdown)
+  const arr = Array.from(fileList)
+    .map((f) => ({ file: f, kind: detectKind(f.name) }))
+    .filter((x): x is { file: File; kind: NonNullable<typeof x.kind> } => x.kind !== null)
   return Promise.all(
-    arr.map(async (f) => ({
-      id: `${f.name}-${f.lastModified}-${f.size}`,
-      name: f.name,
-      content: await f.text(),
+    arr.map(async ({ file, kind }) => ({
+      id: `${file.name}-${file.lastModified}-${file.size}`,
+      name: file.name,
+      content: await file.text(),
+      kind,
     })),
   )
 }

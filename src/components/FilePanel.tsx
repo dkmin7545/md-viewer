@@ -157,6 +157,24 @@ export function FilePanel() {
                     textOverflow: 'ellipsis',
                   }}
                 >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      minWidth: 36,
+                      marginRight: 6,
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      background: 'var(--mdv-border)',
+                      color: 'var(--mdv-muted)',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {f.kind}
+                  </span>
                   {f.name}
                 </button>
                 <button

@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewerStore } from '../store/viewerStore'
 import { extractHeadings, slugify } from '../lib/headings'
 import { CodeBlock } from './CodeBlock'
-import { JoinPrompt } from './JoinPrompt'
 
 // 본문 텍스트(자식 노드 → 문자열)
 function nodeText(children: any): string {
@@ -17,38 +16,12 @@ function nodeText(children: any): string {
 
 export function MarkdownView() {
   const file = useViewerStore((s) => s.files.find((f) => f.id === s.activeId) ?? null)
-  const [joinOpen, setJoinOpen] = useState(false)
 
   // 헤딩 id를 본문 렌더와 TOC 모두 동일한 규칙으로 매기기 위해 store는 별도 카운터를 사용
   // (extractHeadings는 TocPanel에서 호출됨)
   const slugCounter = useMemo(() => new Map<string, number>(), [file?.id])
 
-  if (!file) {
-    return (
-      <div className="markdown-body" style={{ color: 'var(--mdv-muted)' }}>
-        <p>왼쪽 위 버튼으로 .md 파일을 열거나, 이 영역에 파일을 드래그하세요.</p>
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <button
-            onClick={() => setJoinOpen(true)}
-            style={{
-              minHeight: 56,
-              padding: '0 24px',
-              border: '1px solid var(--mdv-border)',
-              borderRadius: 12,
-              background: 'var(--mdv-surface)',
-              color: 'var(--mdv-fg)',
-              fontSize: 18,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            📥 코드로 받기
-          </button>
-        </div>
-        {joinOpen && <JoinPrompt onClose={() => setJoinOpen(false)} />}
-      </div>
-    )
-  }
+  if (!file) return null // 빈 상태는 ContentView가 처리
 
   const headingRenderer = (level: 1 | 2 | 3) =>
     function H({ children, ...props }: any) {

@@ -20,6 +20,7 @@ export function JoinPrompt({ initialCode = '', onClose }: Props) {
           id: f.id || `${f.name}-${Date.now()}`,
           name: f.name,
           content: f.content,
+          kind: f.kind,
         })),
       )
       onClose()

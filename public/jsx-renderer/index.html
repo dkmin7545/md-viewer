@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>JSX Renderer</title>
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+
+    /* Home screen */
+    .home { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100dvh; padding: 24px; gap: 32px; }
+    .home h1 { font-size: 32px; font-weight: 800; color: #f8fafc; }
+    .home p { font-size: 18px; font-weight: 500; color: #94a3b8; text-align: center; line-height: 1.5; }
+
+    .file-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; max-width: 360px; padding: 22px 36px; border-radius: 16px; border: 2px dashed #334155; background: #1e293b; color: #e2e8f0; font-size: 22px; font-weight: 700; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+    .file-btn:active { background: #334155; border-color: #60a5fa; }
+    .file-btn svg { width: 28px; height: 28px; stroke: #60a5fa; }
+
+    /* Recent files */
+    .recent { width: 100%; max-width: 360px; }
+    .recent h2 { font-size: 16px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .recent-list { display: flex; flex-direction: column; gap: 6px; }
+    .recent-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; background: #1e293b; cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
+    .recent-item:active { background: #334155; }
+    .recent-item .name { font-size: 18px; font-weight: 600; color: #e2e8f0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-item .date { font-size: 15px; font-weight: 500; color: #64748b; white-space: nowrap; }
+    .recent-item .del { width: 32px; height: 32px; border-radius: 8px; border: none; background: #334155; color: #cbd5e1; font-size: 18px; font-weight: 700; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .recent-item .del:active { background: #475569; }
+    .recent-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .recent-clear { background: none; border: none; color: #94a3b8; font-size: 14px; font-weight: 600; cursor: pointer; padding: 4px 8px; -webkit-tap-highlight-color: transparent; }
+    .recent-clear:active { color: #f87171; }
+
+    /* Render view */
+    .render-view { display: none; flex-direction: column; min-height: 100dvh; }
+    .render-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #334155; flex-shrink: 0; z-index: 50; }
+    .back-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; border: none; background: #334155; color: #e2e8f0; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .back-btn:active { background: #475569; }
+    .file-name { font-size: 18px; font-weight: 600; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .render-container { flex: 1; background: #ffffff; overflow: auto; }
+    #render-root { min-height: 100%; }
+
+    /* Error display */
+    .error-box { margin: 16px; padding: 16px; border-radius: 12px; background: #450a0a; border: 1px solid #7f1d1d; }
+    .error-box h3 { font-size: 20px; font-weight: 700; color: #fca5a5; margin-bottom: 10px; }
+    .error-box pre { font-size: 15px; font-weight: 500; color: #fca5a5; white-space: pre-wrap; word-break: break-all; font-family: 'SF Mono', Monaco, monospace; line-height: 1.6; }
+    .error-box .source-toggle { margin-top: 12px; padding: 8px 14px; border-radius: 8px; border: 1px solid #7f1d1d; background: transparent; color: #fca5a5; font-size: 13px; cursor: pointer; }
+    .error-box .source-code { margin-top: 12px; padding: 12px; border-radius: 8px; background: #1e293b; max-height: 300px; overflow: auto; display: none; }
+    .error-box .source-code pre { color: #94a3b8; }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 48px; color: #64748b; font-size: 20px; font-weight: 600; gap: 12px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid #334155; border-top-color: #60a5fa; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Home Screen -->
+  <div class="home" id="home-screen">
+    <div style="text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 12px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      </div>
+      <h1>JSX Renderer</h1>
+      <p style="margin-top: 8px;">Claude Artifact .jsx 파일을<br/>바로 열어볼 수 있습니다</p>
+    </div>
+
+    <label class="file-btn" for="file-input">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      파일 선택
+    </label>
+    <input type="file" id="file-input" accept="*/*" style="display:none" />
+
+    <div class="recent" id="recent-section" style="display:none">
+      <div class="recent-header">
+        <h2>최근 파일</h2>
+        <button class="recent-clear" id="recent-clear-btn">전체 삭제</button>
+      </div>
+      <div class="recent-list" id="recent-list"></div>
+    </div>
+
+    <div style="position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 11px; color: #475569;">v2024.0406.7</div>
+  </div>
+
+  <!-- Render Screen -->
+  <div class="render-view" id="render-view">
+    <div class="render-header">
+      <button class="back-btn" id="back-btn" aria-label="뒤로 가기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="file-name" id="file-name"></span>
+    </div>
+    <div class="render-container">
+      <div id="render-root"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── Library registry: module name → { global, url } ──
+    const LIB_REGISTRY = {
+      'react': { global: 'React', preloaded: true },
+      'react-dom': { global: 'ReactDOM', preloaded: true },
+      'react-dom/client': { global: 'ReactDOM', preloaded: true },
+      'recharts': {
+        global: 'Recharts',
+        url: 'https://unpkg.com/recharts@2/umd/Recharts.js'
+      },
+      'lucide-react': {
+        global: 'lucideReact',
+        url: 'https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js'
+      },
+      'framer-motion': {
+        global: 'Motion',
+        url: 'https://unpkg.com/framer-motion@11/dist/framer-motion.js'
+      },
+      'lodash': {
+        global: '_',
+        url: 'https://unpkg.com/lodash@4/lodash.min.js'
+      },
+      'date-fns': {
+        global: 'dateFns',
+        url: 'https://unpkg.com/date-fns@3/cdn.min.js'
+      },
+      'papaparse': {
+        global: 'Papa',
+        url: 'https://unpkg.com/papaparse@5/papaparse.min.js'
+      },
+      '@heroicons/react/24/outline': {
+        global: 'HeroiconsOutline',
+        url: null,
+        skip: true
+      },
+      '@heroicons/react/24/solid': {
+        global: 'HeroiconsSolid',
+        url: null,
+        skip: true
+      }
+    };
+
+    // ── State ──
+    const homeScreen = document.getElementById('home-screen');
+    const renderView = document.getElementById('render-view');
+    const fileInput = document.getElementById('file-input');
+    const backBtn = document.getElementById('back-btn');
+    const fileNameEl = document.getElementById('file-name');
+    const renderRoot = document.getElementById('render-root');
+    const recentSection = document.getElementById('recent-section');
+    const recentList = document.getElementById('recent-list');
+
+    // ── Recent files (localStorage) ──
+    function getRecents() {
+      try { return JSON.parse(localStorage.getItem('jsx-recents') || '[]'); } catch { return []; }
+    }
+    function addRecent(name, code) {
+      let recents = getRecents().filter(r => r.name !== name);
+      recents.unshift({ name, code, date: Date.now() });
+      recents = recents.slice(0, 10);
+      localStorage.setItem('jsx-recents', JSON.stringify(recents));
+      showRecents();
+    }
+    function removeRecent(idx) {
+      const recents = getRecents();
+      recents.splice(idx, 1);
+      localStorage.setItem('jsx-recents', JSON.stringify(recents));
+      showRecents();
+    }
+    function clearRecents() {
+      if (!confirm('최근 파일 전체를 삭제할까요?')) return;
+      localStorage.removeItem('jsx-recents');
+      showRecents();
+    }
+    function showRecents() {
+      const recents = getRecents();
+      if (recents.length === 0) { recentSection.style.display = 'none'; return; }
+      recentSection.style.display = 'block';
+      recentList.innerHTML = recents.map((r, i) => {
+        const d = new Date(r.date);
+        const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
+        return `<div class="recent-item" data-idx="${i}">
+          <span class="name">${escapeHtml(r.name)}</span>
+          <span class="date">${dateStr}</span>
+          <button class="del" data-del="${i}" aria-label="삭제">×</button>
+        </div>`;
+      }).join('');
+      recentList.querySelectorAll('.recent-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+          if (e.target.classList.contains('del')) {
+            e.stopPropagation();
+            removeRecent(parseInt(e.target.dataset.del));
+            return;
+          }
+          const r = getRecents()[parseInt(el.dataset.idx)];
+          if (r) renderJSX(r.name, r.code);
+        });
+      });
+    }
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Navigation ──
+    function showRender() {
+      homeScreen.style.display = 'none';
+      renderView.style.display = 'flex';
+    }
+    function showHome() {
+      renderView.style.display = 'none';
+      homeScreen.style.display = 'flex';
+      renderRoot.innerHTML = '';
+      showRecents();
+    }
+    backBtn.addEventListener('click', showHome);
+    document.getElementById('recent-clear-btn').addEventListener('click', clearRecents);
+
+    // ── File input ──
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['jsx', 'tsx'].includes(ext)) {
+        alert('.jsx 또는 .tsx 파일만 지원합니다.\n선택한 파일: ' + file.name);
+        fileInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const buffer = reader.result;
+        // Detect encoding from BOM
+        const bytes = new Uint8Array(buffer);
+        let encoding = 'utf-8';
+        if (bytes[0] === 0xFF && bytes[1] === 0xFE) encoding = 'utf-16le';
+        else if (bytes[0] === 0xFE && bytes[1] === 0xFF) encoding = 'utf-16be';
+        else if (bytes.length >= 2 && bytes[0] !== 0 && bytes[1] === 0) encoding = 'utf-16le'; // heuristic
+        const text = new TextDecoder(encoding).decode(buffer);
+        renderJSX(file.name, text);
+        addRecent(file.name, text);
+      };
+      reader.readAsArrayBuffer(file);
+      fileInput.value = '';
+    });
+
+    // ── Clean code: fix smart quotes, BOM, invisible chars ──
+    function cleanCode(code) {
+      return code
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/^\uFEFF/, '')
+        .replace(/\u0000/g, '')           // null bytes (UTF-16 misdecode)
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/\u00A0/g, ' ')
+        .replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, '');
+    }
+
+    // ── Import processing ──
+    function processImports(code) {
+      const neededLibs = [];
+      const importMap = {};
+
+      // Match import statements
+      const importRegex = /^\s*import\s+(.+?)\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/gm;
+      let match;
+      const imports = [];
+
+      while ((match = importRegex.exec(code)) !== null) {
+        imports.push({ full: match[0], specifiers: match[1], module: match[2] });
+      }
+
+      let processedCode = code;
+
+      for (const imp of imports) {
+        const lib = LIB_REGISTRY[imp.module];
+        if (!lib) {
+          // Unknown import — strip it and add a warning comment
+          processedCode = processedCode.replace(imp.full, `/* [JSX Renderer] unsupported import: ${imp.module} */`);
+          continue;
+        }
+
+        if (lib.skip) {
+          processedCode = processedCode.replace(imp.full, `/* [JSX Renderer] ${imp.module} not available */`);
+          continue;
+        }
+
+        if (!lib.preloaded && lib.url) {
+          neededLibs.push(lib);
+        }
+
+        // Build variable declarations from import specifiers
+        const globalName = lib.global;
+        let replacement = '';
+
+        const specStr = imp.specifiers.trim();
+
+        // import Default from 'mod'
+        // import Default, { a, b } from 'mod'
+        // import { a, b } from 'mod'
+        // import * as X from 'mod'
+
+        if (specStr.startsWith('* as ')) {
+          const alias = specStr.replace('* as ', '').trim();
+          replacement = `const ${alias} = window["${globalName}"];`;
+        } else {
+          const parts = specStr.split(',').map(s => s.trim());
+          const lines = [];
+
+          for (const part of parts) {
+            if (part.startsWith('{') || part.includes('{')) {
+              // Named imports: { a, b, c as d }
+              const inner = part.replace(/[{}]/g, '').trim();
+              if (inner) {
+                const names = inner.split(',').map(n => n.trim()).filter(Boolean);
+                const destructured = names.map(n => {
+                  const asParts = n.split(/\s+as\s+/);
+                  return asParts.length === 2 ? `${asParts[0].trim()}: ${asParts[1].trim()}` : n;
+                }).join(', ');
+                lines.push(`const { ${destructured} } = window["${globalName}"];`);
+              }
+            } else if (part.endsWith('}')) {
+              // continuation of named — skip, handled above
+            } else if (part) {
+              // Default import
+              lines.push(`const ${part} = window["${globalName}"];`);
+            }
+          }
+          replacement = lines.join('\n');
+        }
+
+        processedCode = processedCode.replace(imp.full, replacement);
+      }
+
+      // Ensure React is always available (needed for JSX transpilation)
+      if (!processedCode.includes('const React = ') && !processedCode.includes('var React = ')) {
+        processedCode = 'const React = window["React"];\n' + processedCode;
+      }
+
+      // Handle export default
+      processedCode = processedCode.replace(
+        /export\s+default\s+function\s+(\w+)/g,
+        'function $1'
+      );
+      processedCode = processedCode.replace(
+        /export\s+default\s+/g,
+        'const __DefaultExport__ = '
+      );
+
+      // Extract the component name from the original default export
+      const defaultFnMatch = code.match(/export\s+default\s+function\s+(\w+)/);
+      const componentName = defaultFnMatch ? defaultFnMatch[1] : '__DefaultExport__';
+
+      // Handle named exports (just strip the export keyword)
+      processedCode = processedCode.replace(/export\s+(const|let|var|function|class)\s+/g, '$1 ');
+
+      return { processedCode, neededLibs, componentName };
+    }
+
+    // ── Load external libraries dynamically ──
+    async function loadLibraries(libs) {
+      const uniqueUrls = [...new Set(libs.filter(l => l.url).map(l => l.url))];
+      await Promise.all(uniqueUrls.map(url => {
+        if (document.querySelector(`script[src="${url}"]`)) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = url;
+          s.onload = resolve;
+          s.onerror = () => reject(new Error(`Failed to load: ${url}`));
+          document.head.appendChild(s);
+        });
+      }));
+    }
+
+    // ── Render JSX ──
+    async function renderJSX(fileName, code) {
+      fileNameEl.textContent = fileName;
+      showRender();
+      renderRoot.innerHTML = '<div class="loading"><div class="spinner"></div>렌더링 중...</div>';
+
+      let processedCode = '';
+      try {
+        // Process imports and get needed libraries
+        const cleaned = cleanCode(code);
+        const result = processImports(cleaned);
+        processedCode = result.processedCode;
+        const { neededLibs, componentName } = result;
+
+        // Load any external libraries
+        if (neededLibs.length > 0) {
+          renderRoot.innerHTML = '<div class="loading"><div class="spinner"></div>라이브러리 로딩 중...</div>';
+          await loadLibraries(neededLibs);
+        }
+
+        // Transpile with Babel
+        const transformed = Babel.transform(processedCode, {
+          presets: ['react'],
+          filename: fileName
+        });
+
+        // Execute and render
+        const execCode = `
+          (function() {
+            ${transformed.code}
+            return typeof ${componentName} !== 'undefined' ? ${componentName} : null;
+          })()
+        `;
+
+        const Component = eval(execCode);
+
+        if (!Component) {
+          throw new Error('컴포넌트를 찾을 수 없습니다. export default가 있는지 확인해주세요.');
+        }
+
+        // Render with React 18
+        renderRoot.innerHTML = '';
+        const root = ReactDOM.createRoot(renderRoot);
+        root.render(React.createElement(Component));
+
+      } catch (err) {
+        renderRoot.innerHTML = '';
+        const cleaned = cleanCode(code);
+        const debugInfo = `원본 길이: ${code.length}자 | 클린 후: ${cleaned.length}자 | 변환 후: ${processedCode.length}자`;
+        const first200raw = JSON.stringify(code.substring(0, 200));
+        const first200cleaned = JSON.stringify(cleaned.substring(0, 200));
+        const errorBox = document.createElement('div');
+        errorBox.className = 'error-box';
+        errorBox.innerHTML = `
+          <h3>렌더링 실패</h3>
+          <pre>${escapeHtml(err.message)}</pre>
+          <pre style="margin-top:8px;font-size:13px;color:#94a3b8;">${escapeHtml(debugInfo)}</pre>
+          <button class="source-toggle" style="margin-top:8px;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+            원본 코드 (앞 200자)
+          </button>
+          <div class="source-code"><pre>${escapeHtml(first200raw)}</pre></div>
+          <button class="source-toggle" style="margin-top:8px;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+            클린 후 코드 (앞 200자)
+          </button>
+          <div class="source-code"><pre>${escapeHtml(first200cleaned)}</pre></div>
+          <button class="source-toggle" style="margin-top:8px;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+            변환된 전체 코드
+          </button>
+          <div class="source-code"><pre>${escapeHtml(processedCode)}</pre></div>
+        `;
+        renderRoot.appendChild(errorBox);
+      }
+    }
+
+    // ── Init ──
+    showRecents();
+
+    // ── Embed mode (md viewer 통합) ──
+    // ?embed=1 일 때는 home/back/recent 숨기고 부모 창의 postMessage로만 동작.
+    const params = new URLSearchParams(location.search);
+    const isEmbed = params.get('embed') === '1';
+    if (isEmbed) {
+      // home 화면 즉시 숨김 (renderJSX가 어차피 showRender 호출하지만,
+      // 아직 메시지 안 왔을 때 home 깜빡임 방지)
+      homeScreen.style.display = 'none';
+      // back 버튼은 부모(md viewer) 쪽 ☰/탭이 처리하므로 숨김
+      const headerBack = document.querySelector('.render-header');
+      if (headerBack) headerBack.style.display = 'none';
+      renderView.style.display = 'flex';
+      renderRoot.innerHTML = '<div class="loading"><div class="spinner"></div>대기 중...</div>';
+
+      window.addEventListener('message', (e) => {
+        // origin은 md viewer와 같음 (정적 자산이라 동일 origin)
+        if (e.origin !== location.origin) return;
+        const msg = e.data;
+        if (msg && msg.type === 'render-jsx' && typeof msg.code === 'string') {
+          renderJSX(msg.name || 'untitled.jsx', msg.code);
+        }
+      });
+
+      // 부모에게 준비 완료 알림 → 부모는 첫 코드 즉시 송신 가능
+      try { parent.postMessage({ type: 'jsx-renderer-ready' }, location.origin); } catch (_) {}
+    }
+
+    // ── Service Worker ──
+    // md viewer가 자체 SW를 운영하므로 임베드 페이지는 SW 등록 안 함.
+  </script>
+</body>
+</html>

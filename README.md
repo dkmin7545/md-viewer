@@ -1,13 +1,17 @@
 # MD Viewer
 
-노안 친화적인 모바일 우선 마크다운 뷰어 PWA. Cowork 등에서 내보낸 `.md` 파일을 큰 글씨로 편하게 읽기 위해 만들었습니다.
+노안 친화적인 모바일 우선 문서 뷰어 PWA. Claude/Cowork 등에서 만든 `.md` / `.html` / `.jsx` 파일을 맥북에서 모바일로 한 번에 보내고 큰 글씨로 편하게 읽기 위해 만들었습니다.
 
 **Live**: https://dkmin7545.github.io/md-viewer/
 
 ## 주요 기능
 
+- **여러 형식 지원**
+  - `.md` — react-markdown + remark-gfm 렌더링, 노안 친화 큰 글씨
+  - `.html` — sandbox iframe에서 격리 렌더링 (대시보드/리포트 한 페이지 그대로)
+  - `.jsx` — Babel standalone 기반 라이브 렌더링, recharts/lucide-react/framer-motion/lodash/date-fns/papaparse/Tailwind 자동 지원 (별도 jsx-renderer 프로젝트 임베드)
 - **큰 글씨 기본** — 기본 18px, 14–28px 슬라이더, line-height 1.7 고정
-- **파일/폴더/드래그앤드롭 열기** — 폴더 선택 시 하위 `.md` 일괄 로드
+- **파일/폴더/드래그앤드롭 열기** — 폴더 선택 시 하위 지원 파일 일괄 로드
 - **세션 복원** — 새로고침해도 열려 있던 파일과 활성 탭이 그대로 유지 (IndexedDB, 50개 / 5MB)
 - **모바일로 보내기 (P2P)** — 맥북에서 📤 누르면 6자리 코드와 QR이 뜨고, 모바일에서 코드 입력 또는 카메라로 QR 스캔하면 파일이 직접 P2P 전송됨 (서버 안 거침)
 - **PWA / 오프라인** — 홈 화면에 설치 가능, 한 번 받은 파일은 비행기 모드에서도 열람
@@ -58,6 +62,11 @@ src/
 ```
 
 자세한 요건은 [md-viewer-requirements.md](md-viewer-requirements.md) 참고.
+
+## 한계
+
+- **JSX 렌더링은 온라인 필요** — Babel/React/Tailwind/Recharts 등을 unpkg.com CDN에서 받기 때문. md/html은 PWA 캐시로 오프라인 작동.
+- JSX의 외부 npm 의존성은 등록된 라이브러리만 지원 ([public/jsx-renderer/index.html](public/jsx-renderer/index.html)의 `LIB_REGISTRY` 참고)
 
 ## 비범위
 

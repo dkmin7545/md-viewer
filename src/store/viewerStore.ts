@@ -1,11 +1,22 @@
 import { create } from 'zustand'
 import { get as idbGet, set as idbSet } from 'idb-keyval'
 
+export type FileKind = 'md' | 'html' | 'jsx'
+
 export type LoadedFile = {
   id: string
   name: string
   content: string
+  kind: FileKind
   lastOpened?: number
+}
+
+export function detectKind(name: string): FileKind | null {
+  const n = name.toLowerCase()
+  if (n.endsWith('.md') || n.endsWith('.markdown')) return 'md'
+  if (n.endsWith('.html') || n.endsWith('.htm')) return 'html'
+  if (n.endsWith('.jsx')) return 'jsx'
+  return null
 }
 
 export type Theme = 'light' | 'dark'
@@ -112,7 +123,12 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     try {
       const snap = (await idbGet(IDB_SESSION)) as SessionSnapshot | undefined
       if (snap && Array.isArray(snap.files) && snap.files.length > 0) {
-        const files = trimToLimits(snap.files)
+        // 옛 세션은 kind가 없을 수 있다 → 파일명 기반 추론, 실패 시 'md' 폴백
+        const withKind = snap.files.map((f) => ({
+          ...f,
+          kind: f.kind ?? detectKind(f.name) ?? 'md',
+        }))
+        const files = trimToLimits(withKind)
         const activeId =
           snap.activeId && files.find((f) => f.id === snap.activeId)
             ? snap.activeId

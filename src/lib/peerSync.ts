@@ -4,7 +4,7 @@
 // 코드 체계: 6자리 영숫자(소문자+숫자, ambiguous 제외).
 // 실제 PeerJS ID는 'mdv-<code>' 네임스페이스로 충돌을 피한다.
 
-import type { LoadedFile } from '../store/viewerStore'
+import { detectKind, type LoadedFile } from '../store/viewerStore'
 
 const PEER_PREFIX = 'mdv-'
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789' // 0/1/i/l/o 제외
@@ -59,7 +59,12 @@ export async function createSender(files: LoadedFile[]): Promise<SenderHandle> {
     conn.on('open', () => {
       setStatus({ kind: 'sending' })
       // lastOpened는 수신측에서 새로 찍게 비움
-      const payload = files.map(({ id, name, content }) => ({ id, name, content }))
+      const payload = files.map(({ id, name, content, kind }) => ({
+        id,
+        name,
+        content,
+        kind,
+      }))
       conn.send({ type: 'files', files: payload })
       // 살짝 지연 후 done 표시 (PeerJS는 ack가 없으므로 best-effort)
       setTimeout(() => setStatus({ kind: 'done' }), 800)
@@ -124,7 +129,12 @@ export async function joinAsReceiver(
       const d = data as { type?: string; files?: LoadedFile[] }
       if (d?.type === 'files' && Array.isArray(d.files)) {
         clearTimeout(timer)
-        resolve(d.files)
+        // 구버전 송신은 kind가 없을 수 있다 → 파일명에서 추론
+        const filled = d.files.map((f) => ({
+          ...f,
+          kind: f.kind ?? detectKind(f.name) ?? 'md',
+        }))
+        resolve(filled)
         setTimeout(() => {
           try {
             conn.close()
