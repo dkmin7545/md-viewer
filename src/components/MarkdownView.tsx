@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { useViewerStore } from '../store/viewerStore'
 import { extractHeadings, slugify } from '../lib/headings'
 import { CodeBlock } from './CodeBlock'
+import { MermaidBlock } from './MermaidBlock'
 
 // 본문 텍스트(자식 노드 → 문자열)
 function nodeText(children: any): string {
@@ -46,9 +47,11 @@ export function MarkdownView() {
           code({ inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '')
             if (!inline && match) {
-              return (
-                <CodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} />
-              )
+              const value = String(children).replace(/\n$/, '')
+              if (match[1] === 'mermaid') {
+                return <MermaidBlock value={value} />
+              }
+              return <CodeBlock language={match[1]} value={value} />
             }
             return (
               <code className={className} {...props}>
